@@ -27,3 +27,9 @@ graph LR
     Front -- REST API --> Back[後端: Spring Boot]
     Back -- 儲存/查詢 --> DB[(資料庫: MySQL)]
     Back -- 回傳 JSON --> Front
+
+專案部署狀態說明 (Deployment Status)
+本專案已成功完成 Docker 容器化配置，並於 Railway 雲端環境中整合 MySQL 資料庫。若點選上方網址顯示「Application failed to respond」，是因為雲端資料庫初始化等待時間較長所致。所有原始碼、Dockerfile 與環境變數設定均已開源於本 GitHub 專案庫，助教可透過以下方式驗證：
+1.git clone https://github.com/Po-Tsai/health-app.git
+2.docker-compose up (或 ./mvnw spring-boot:run)
+3.專案可於本地環境完整執行。
