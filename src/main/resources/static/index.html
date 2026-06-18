@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>智慧健康日誌 · 儀表板</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: { 50: '#ecfdf5', 100: '#d1fae5', 500: '#10b981', 600: '#059669', 700: '#047857' },
+            risk: { high: '#ef4444', mid: '#f59e0b', low: '#22c55e' }
+          },
+          fontFamily: { sans: ['"Inter"', 'system-ui', 'sans-serif'] }
+        }
+      }
+    };
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    body { font-family: 'Inter', system-ui, sans-serif; }
+    .glass { background: rgba(255,255,255,0.85); backdrop-filter: blur(12px); }
+    @keyframes pulse-soft { 0%,100% { opacity:1 } 50% { opacity:.7 } }
+    .loading { animation: pulse-soft 1.5s ease-in-out infinite; }
+  </style>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-slate-50 via-emerald-50/40 to-teal-50">
+
+  <!-- Header -->
+  <header class="border-b border-white/60 glass sticky top-0 z-10">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-500 to-teal-600 flex items-center justify-center shadow-lg shadow-emerald-200">
+          <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+          </svg>
+        </div>
+        <div>
+          <h1 class="text-xl font-bold text-slate-800 tracking-tight">智慧健康日誌</h1>
+          <p class="text-xs text-slate-500">Health Log & Risk Assessment Dashboard</p>
+        </div>
+      </div>
+      <button id="refreshBtn"
+        class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white border border-slate-200 text-sm font-medium text-slate-700 hover:bg-slate-50 hover:border-brand-500 hover:text-brand-700 transition-all shadow-sm">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+        </svg>
+        重新整理
+      </button>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+
+    <!-- Error banner -->
+    <div id="errorBanner" class="hidden rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-red-700 text-sm flex items-center gap-2">
+      <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+      </svg>
+      <span id="errorMessage"></span>
+    </div>
+
+    <!-- Risk Card -->
+    <section id="riskSection" class="relative overflow-hidden rounded-2xl shadow-xl shadow-slate-200/60 border border-white/80">
+      <div id="riskCard" class="p-8 sm:p-10 bg-gradient-to-br from-slate-800 to-slate-900 text-white transition-all duration-500">
+        <div class="relative z-10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
+          <div>
+            <p class="text-sm font-medium text-slate-400 uppercase tracking-widest mb-2">最新風險評估</p>
+            <div id="riskLevelDisplay" class="loading text-4xl sm:text-5xl font-bold tracking-tight">載入中…</div>
+            <p id="riskSubtitle" class="mt-3 text-slate-400 text-sm max-w-md">正在從後端取得最新健康日誌的風險等級…</p>
+          </div>
+          <div id="riskIcon" class="hidden sm:flex w-24 h-24 rounded-full items-center justify-center bg-white/10 border border-white/20">
+            <svg class="w-12 h-12 text-white/80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+      <div class="absolute -right-10 -top-10 w-48 h-48 rounded-full bg-white/5 blur-2xl pointer-events-none"></div>
+      <div class="absolute -left-10 -bottom-10 w-64 h-64 rounded-full bg-emerald-500/10 blur-3xl pointer-events-none"></div>
+    </section>
+
+    <!-- Stats row -->
+    <section class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div class="glass rounded-xl border border-white/80 p-5 shadow-sm">
+        <p class="text-xs font-medium text-slate-500 uppercase tracking-wide">紀錄筆數</p>
+        <p id="statCount" class="mt-1 text-2xl font-bold text-slate-800 loading">—</p>
+      </div>
+      <div class="glass rounded-xl border border-white/80 p-5 shadow-sm">
+        <p class="text-xs font-medium text-slate-500 uppercase tracking-wide">平均睡眠 (hr)</p>
+        <p id="statSleep" class="mt-1 text-2xl font-bold text-indigo-600 loading">—</p>
+      </div>
+      <div class="glass rounded-xl border border-white/80 p-5 shadow-sm">
+        <p class="text-xs font-medium text-slate-500 uppercase tracking-wide">平均步數</p>
+        <p id="statSteps" class="mt-1 text-2xl font-bold text-emerald-600 loading">—</p>
+      </div>
+      <div class="glass rounded-xl border border-white/80 p-5 shadow-sm">
+        <p class="text-xs font-medium text-slate-500 uppercase tracking-wide">平均心情</p>
+        <p id="statMood" class="mt-1 text-2xl font-bold text-amber-600 loading">—</p>
+      </div>
+    </section>
+
+    <!-- Chart -->
+    <section class="glass rounded-2xl border border-white/80 p-6 sm:p-8 shadow-sm">
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-6">
+        <div>
+          <h2 class="text-lg font-semibold text-slate-800">90 天趨勢分析</h2>
+          <p class="text-sm text-slate-500">睡眠時間（小時）與步數變化</p>
+        </div>
+        <span id="chartRangeLabel" class="text-xs font-medium text-slate-400 bg-slate-100 px-3 py-1 rounded-full">近 90 天</span>
+      </div>
+      <div class="relative h-72 sm:h-80">
+        <canvas id="trendChart"></canvas>
+        <div id="chartEmpty" class="hidden absolute inset-0 flex items-center justify-center text-slate-400 text-sm">
+          尚無足夠資料可繪製圖表
+        </div>
+      </div>
+    </section>
+
+    <!-- Table -->
+    <section class="glass rounded-2xl border border-white/80 shadow-sm overflow-hidden">
+      <div class="px-6 py-5 border-b border-slate-100">
+        <h2 class="text-lg font-semibold text-slate-800">歷史紀錄</h2>
+        <p class="text-sm text-slate-500 mt-0.5">所有健康日誌資料</p>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="bg-slate-50/80 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
+              <th class="px-6 py-3">ID</th>
+              <th class="px-6 py-3">日期</th>
+              <th class="px-6 py-3">睡眠 (hr)</th>
+              <th class="px-6 py-3">步數</th>
+              <th class="px-6 py-3">心情 (1–10)</th>
+              <th class="px-6 py-3">風險等級</th>
+            </tr>
+          </thead>
+          <tbody id="logTableBody" class="divide-y divide-slate-100">
+            <tr>
+              <td colspan="6" class="px-6 py-10 text-center text-slate-400 loading">載入中…</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 text-center text-xs text-slate-400">
+    智慧健康日誌與風險評估系統 · Spring Boot API
+  </footer>
+
+  <script>
+    const API_BASE = 'http://localhost:8080';
+    let trendChart = null;
+
+    const RISK_STYLES = {
+      '高風險': {
+        gradient: 'from-red-600 to-rose-800',
+        badge: 'bg-red-500/20 text-red-100 border-red-400/30',
+        subtitle: '建議立即調整作息，增加活動量並關注心理健康。',
+        iconColor: 'text-red-300'
+      },
+      '中風險': {
+        gradient: 'from-amber-500 to-orange-700',
+        badge: 'bg-amber-500/20 text-amber-100 border-amber-400/30',
+        subtitle: '部分健康指標需改善，請持續追蹤並適度調整生活習慣。',
+        iconColor: 'text-amber-300'
+      },
+      '低風險': {
+        gradient: 'from-emerald-600 to-teal-800',
+        badge: 'bg-emerald-500/20 text-emerald-100 border-emerald-400/30',
+        subtitle: '整體健康狀況良好，請保持目前的作息與運動習慣。',
+        iconColor: 'text-emerald-300'
+      }
+    };
+
+    function showError(msg) {
+      const banner = document.getElementById('errorBanner');
+      document.getElementById('errorMessage').textContent = msg;
+      banner.classList.remove('hidden');
+    }
+
+    function hideError() {
+      document.getElementById('errorBanner').classList.add('hidden');
+    }
+
+    function riskBadgeClass(level) {
+      if (level === '高風險') return 'bg-red-100 text-red-700 ring-red-600/20';
+      if (level === '中風險') return 'bg-amber-100 text-amber-700 ring-amber-600/20';
+      return 'bg-emerald-100 text-emerald-700 ring-emerald-600/20';
+    }
+
+    function filterLast90Days(logs) {
+      const cutoff = new Date();
+      cutoff.setDate(cutoff.getDate() - 90);
+      return logs
+        .filter(l => new Date(l.logDate) >= cutoff)
+        .sort((a, b) => new Date(a.logDate) - new Date(b.logDate));
+    }
+
+    function renderRiskCard(riskLevel) {
+      const card = document.getElementById('riskCard');
+      const style = RISK_STYLES[riskLevel] || RISK_STYLES['低風險'];
+      card.className = `p-8 sm:p-10 bg-gradient-to-br ${style.gradient} text-white transition-all duration-500`;
+
+      const display = document.getElementById('riskLevelDisplay');
+      display.classList.remove('loading');
+      display.textContent = riskLevel;
+
+      document.getElementById('riskSubtitle').textContent = style.subtitle;
+    }
+
+    function renderStats(logs) {
+      document.getElementById('statCount').textContent = logs.length;
+      document.getElementById('statCount').classList.remove('loading');
+
+      if (logs.length === 0) {
+        ['statSleep', 'statSteps', 'statMood'].forEach(id => {
+          const el = document.getElementById(id);
+          el.textContent = '—';
+          el.classList.remove('loading');
+        });
+        return;
+      }
+
+      const avg = (arr) => (arr.reduce((s, v) => s + v, 0) / arr.length).toFixed(1);
+      document.getElementById('statSleep').textContent = avg(logs.map(l => l.sleepHours));
+      document.getElementById('statSleep').classList.remove('loading');
+      document.getElementById('statSteps').textContent = Math.round(logs.reduce((s, l) => s + l.steps, 0) / logs.length).toLocaleString();
+      document.getElementById('statSteps').classList.remove('loading');
+      document.getElementById('statMood').textContent = avg(logs.map(l => l.moodScore));
+      document.getElementById('statMood').classList.remove('loading');
+    }
+
+    function renderChart(logs) {
+      const recent = filterLast90Days(logs);
+      const canvas = document.getElementById('trendChart');
+      const empty = document.getElementById('chartEmpty');
+
+      document.getElementById('chartRangeLabel').textContent =
+        recent.length > 0 ? `共 ${recent.length} 筆 · 近 90 天` : '近 90 天 · 無資料';
+
+      if (recent.length === 0) {
+        canvas.classList.add('hidden');
+        empty.classList.remove('hidden');
+        if (trendChart) { trendChart.destroy(); trendChart = null; }
+        return;
+      }
+
+      canvas.classList.remove('hidden');
+      empty.classList.add('hidden');
+
+      const labels = recent.map(l => l.logDate);
+      const sleepData = recent.map(l => l.sleepHours);
+      const stepsData = recent.map(l => l.steps);
+
+      if (trendChart) trendChart.destroy();
+
+      trendChart = new Chart(canvas, {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [
+            {
+              label: '睡眠 (hr)',
+              data: sleepData,
+              borderColor: '#6366f1',
+              backgroundColor: 'rgba(99,102,241,0.08)',
+              borderWidth: 2.5,
+              pointRadius: recent.length > 30 ? 0 : 4,
+              pointHoverRadius: 6,
+              tension: 0.35,
+              yAxisID: 'ySleep',
+              fill: true
+            },
+            {
+              label: '步數',
+              data: stepsData,
+              borderColor: '#10b981',
+              backgroundColor: 'rgba(16,185,129,0.06)',
+              borderWidth: 2.5,
+              pointRadius: recent.length > 30 ? 0 : 4,
+              pointHoverRadius: 6,
+              tension: 0.35,
+              yAxisID: 'ySteps',
+              fill: true
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { mode: 'index', intersect: false },
+          plugins: {
+            legend: {
+              position: 'top',
+              labels: { usePointStyle: true, padding: 20, font: { family: 'Inter', size: 12 } }
+            },
+            tooltip: {
+              backgroundColor: '#1e293b',
+              titleFont: { family: 'Inter' },
+              bodyFont: { family: 'Inter' },
+              padding: 12,
+              cornerRadius: 8
+            }
+          },
+          scales: {
+            x: {
+              grid: { display: false },
+              ticks: { font: { family: 'Inter', size: 11 }, maxRotation: 45, autoSkip: true, maxTicksLimit: 12 }
+            },
+            ySleep: {
+              type: 'linear',
+              position: 'left',
+              title: { display: true, text: '睡眠 (hr)', font: { family: 'Inter', size: 11 } },
+              grid: { color: 'rgba(148,163,184,0.15)' },
+              ticks: { font: { family: 'Inter', size: 11 } },
+              suggestedMin: 0,
+              suggestedMax: 12
+            },
+            ySteps: {
+              type: 'linear',
+              position: 'right',
+              title: { display: true, text: '步數', font: { family: 'Inter', size: 11 } },
+              grid: { drawOnChartArea: false },
+              ticks: { font: { family: 'Inter', size: 11 } }
+            }
+          }
+        }
+      });
+    }
+
+    function renderTable(logs) {
+      const tbody = document.getElementById('logTableBody');
+      const sorted = [...logs].sort((a, b) => new Date(b.logDate) - new Date(a.logDate));
+
+      if (sorted.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="px-6 py-10 text-center text-slate-400">尚無健康日誌紀錄</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = sorted.map(log => `
+        <tr class="hover:bg-slate-50/60 transition-colors">
+          <td class="px-6 py-4 font-mono text-slate-500">${log.id}</td>
+          <td class="px-6 py-4 font-medium text-slate-800">${log.logDate}</td>
+          <td class="px-6 py-4 text-indigo-600 font-medium">${log.sleepHours}</td>
+          <td class="px-6 py-4 text-emerald-600 font-medium">${log.steps.toLocaleString()}</td>
+          <td class="px-6 py-4">
+            <span class="inline-flex items-center gap-1">
+              ${log.moodScore}
+              <span class="text-xs text-slate-400">/ 10</span>
+            </span>
+          </td>
+          <td class="px-6 py-4">
+            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ring-1 ring-inset ${riskBadgeClass(log.riskLevel)}">
+              ${log.riskLevel || '—'}
+            </span>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    async function fetchRisk() {
+      try {
+        const res = await fetch(`${API_BASE}/health-logs/risk`);
+        if (!res.ok) {
+          const display = document.getElementById('riskLevelDisplay');
+          display.classList.remove('loading');
+          display.textContent = '無資料';
+          document.getElementById('riskSubtitle').textContent =
+            res.status === 404 ? '尚無健康日誌，請先新增一筆紀錄。' : `風險 API 回應 ${res.status}`;
+          document.getElementById('riskCard').className =
+            'p-8 sm:p-10 bg-gradient-to-br from-slate-600 to-slate-700 text-white transition-all duration-500';
+          return;
+        }
+        const data = await res.json();
+        renderRiskCard(data.riskLevel);
+      } catch (err) {
+        showError('無法連線至風險評估 API，請確認後端是否已啟動 (localhost:8080)');
+        document.getElementById('riskLevelDisplay').textContent = '連線失敗';
+        document.getElementById('riskLevelDisplay').classList.remove('loading');
+      }
+    }
+
+    async function fetchLogs() {
+      try {
+        const res = await fetch(`${API_BASE}/health-logs`);
+        if (!res.ok) throw new Error(`health-logs API 回應 ${res.status}`);
+        const logs = await res.json();
+        hideError();
+        renderStats(logs);
+        renderChart(logs);
+        renderTable(logs);
+        return logs;
+      } catch (err) {
+        showError('無法取得健康日誌，請確認後端是否已啟動 (localhost:8080)');
+        document.getElementById('logTableBody').innerHTML =
+          `<tr><td colspan="6" class="px-6 py-10 text-center text-red-400">載入失敗</td></tr>`;
+        return [];
+      }
+    }
+
+    async function loadDashboard() {
+      await Promise.all([fetchLogs(), fetchRisk()]);
+    }
+
+    document.getElementById('refreshBtn').addEventListener('click', loadDashboard);
+    loadDashboard();
+  </script>
+</body>
+</html>
